@@ -14,3 +14,5 @@ playing at their absolute best. Hence, each move is a node is the tree, and each
 implicitly pointing to each one of its children (using indexing), and so on. 
 
 To read more about the logic of the evaluation function, see explanation in ScoreEvaluation.java.
+
+_Currently, the program is a console application. I am however going to upgrade with a graphical user interface._
