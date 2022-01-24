@@ -3,9 +3,10 @@
  */
 
 public class Main {
+
     public static void main(String[] args) {
         int GRID_SIZE = 6;
-        int MINIMAX_DEPTH = 3;
+        int MINIMAX_DEPTH = 1;
 
         Grid grid = new Grid(GRID_SIZE, MINIMAX_DEPTH);
         System.out.println("\nNew game created\n");

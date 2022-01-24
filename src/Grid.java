@@ -183,10 +183,6 @@ public class Grid {
         ply++;
     }
 
-    /*
-    TODO: Special case for '*' 'X' 'X' 'X' 'X' '*'? If no special case, ai will play nonsense.
-     */
-
     /**
      * Finds the best move. {@code minimax()} uses the DFS-algorithm to search the tree and
      * will update the data members of mMove[mPly] in order for other methods to access the
@@ -196,24 +192,21 @@ public class Grid {
      * @return the score of the optimal child.
      */
     private float minimax(int mPly, int depth, char player) {
-        // TODO: Find out why depth > 1 results in bad decisions, and fix it.
         if (depth == 0 || fiveInARow(mPly - 1)) {
             // Static evaluation of leaf nodes
             int currentIdx = mMove[mPly-1].tmpSelectChild;
             int x = mMove[mPly-1].child[currentIdx][0];
             int y = mMove[mPly-1].child[currentIdx][1];
             // Update player; base case (depth = 0) always evaluate score
-            // for current player so it has to be changed back
+            // for current player, so it has to be changed back
             char playerUpdated = ((mPly-1) % 2 == 0) ? 'X' : 'O';
-//            float score = ScoreEvaluation.goalFunction(mGamePos[mPly-1].grid, playerUpdated, x, y);
-//            System.out.println(String.format("Child: %d, score: %.8f\n", currentIdx, score));
             return ScoreEvaluation.goalFunction(mGamePos[mPly-1].grid, playerUpdated, x, y);
         }
         // If there's already an object at mGamePos[mPly] or mMove[mPly], it will be reset
         mGamePos[mPly] = copyGamePos(mPly-1); // Instantiate game position at mPly
         mMove[mPly] = new Move(files*ranks); // Instantiate move at mPly
         findAllChildren(mPly); // Find all children at mPly
-//        this.printChildren(mPly); // Print children of mPly
+//        findAllChildren(mGamePos[mPly].grid, mPly); // Alternative child-finding function
         if (player == 'X') {
             // Human player tries to maximize the score
             float maxEval = -Float.MAX_VALUE;
@@ -223,8 +216,6 @@ public class Grid {
                 // Update grid (not including previous child)
                 updateGrid(mPly, mMove[mPly].child[i][0], mMove[mPly].child[i][1]);
                 float eval = minimax(mPly + 1, depth-1, 'O'); // Go deeper into tree
-//                System.out.println("\nTEMP PRINT\n");
-//                printGrid(mPly, false);
                 if (eval > maxEval) {
                     maxEval = eval;
                     currentBestChildIdx = i;
@@ -259,8 +250,7 @@ public class Grid {
     private void findAllChildren(int mPly) {
         for (int y=0; y<ranks; y++) {
             for (int x=0; x<files; x++) {
-                // Look at grid at previous ply since this is the latest updated grid
-                if (mGamePos[mPly-1].grid[y][x] == '*') {
+                if (mGamePos[mPly].grid[y][x] == '*') {
                     // Each empty square is a valid move and should be as a child of mMove[mPly]
                     mMove[mPly].child[mMove[mPly].numOfChildren][0] = x;
                     mMove[mPly].child[mMove[mPly].numOfChildren][1] = y;
@@ -268,6 +258,45 @@ public class Grid {
                 }
             }
         }
+    }
+
+    /**
+     * Find and add all children at ply mPly, where a child is an empty square adjacent to a non-empty square.
+     * This method is an alternative to findAllChildren(int mPly).
+     * @param mPly the ply at which we wish to find all children.
+     */
+    private void findAllChildren(char[][] grid, int mPly) {
+        for (int y=0; y<ranks; y++) {
+            for (int x=0; x<files; x++) {
+                // Each empty square that is adjacent to a non-empty square is a valid move and
+                // should be as a child of mMove[mPly]
+                if (grid[y][x] == '*' && (neighborVertically(grid, x, y) ||
+                                neighborHorizontally(grid, x, y) ||
+                                neighborDiagonally(grid, x, y))) {
+                    mMove[mPly].child[mMove[mPly].numOfChildren][0] = x;
+                    mMove[mPly].child[mMove[mPly].numOfChildren][1] = y;
+                    mMove[mPly].numOfChildren++;
+                }
+            }
+        }
+    }
+
+    private boolean neighborVertically(char[][] grid, int x, int y) {
+        int size = grid[x].length;
+        return ((y+1 < size && grid[y+1][x] != '*') || (y > 0 && grid[y-1][x] != '*'));
+    }
+
+    private boolean neighborHorizontally(char[][] grid, int x, int y) {
+        int size = grid[x].length;
+        return ((x+1 < size && grid[y][x+1] != '*') || (x > 0 && grid[y][x-1] != '*'));
+    }
+
+    private boolean neighborDiagonally(char[][] grid, int x, int y) {
+        int size = grid[x].length;
+        if (y > 0 && x+1 < size && grid[y-1][x+1] != '*') return true;
+        else if (y+1 < size && x+1 < size && grid[y+1][x+1] != '*') return true;
+        else if (y+1 < size && x > 0 && grid[y+1][x-1] != '*') return true;
+        else return (y > 0 && x > 0 && grid[y-1][x-1] != '*');
     }
 
     // ---------- Check game state ----------
@@ -473,19 +502,29 @@ public class Grid {
         else {
             System.out.println("Printing grid after ply " + mPly + ":\n");
         }
-        System.out.print("  ");
+        System.out.print("   ");
         for (int x=0; x<files; x++) System.out.print(Color.ANSI_YELLOW + x + " " + Color.ANSI_RESET);
         System.out.println();
         for (int y=0; y<ranks; y++) {
-            System.out.print(Color.ANSI_YELLOW + y + " " + Color.ANSI_RESET);
+            if (y<10) System.out.print(Color.ANSI_YELLOW + y + "  " + Color.ANSI_RESET);
+            else System.out.print(Color.ANSI_YELLOW + y + " " + Color.ANSI_RESET);
             for (int x=0; x<files; x++) {
                 char currentSquare = mGamePos[mPly].grid[y][x];
-                if (currentSquare == 'O')
-                    System.out.print(Color.ANSI_CYAN + currentSquare + " " + Color.ANSI_RESET);
-                else if (currentSquare == 'X')
-                    System.out.print(Color.ANSI_MAGENTA + currentSquare + " " + Color.ANSI_RESET);
-                else
-                    System.out.print(currentSquare + " ");
+                if (x>=10) {
+                    if (currentSquare == 'O')
+                        System.out.print(Color.ANSI_CYAN + " " + currentSquare + " " + Color.ANSI_RESET);
+                    else if (currentSquare == 'X')
+                        System.out.print(Color.ANSI_MAGENTA + " " + currentSquare + " " + Color.ANSI_RESET);
+                    else
+                        System.out.print(" " + currentSquare + " ");
+                } else {
+                    if (currentSquare == 'O')
+                        System.out.print(Color.ANSI_CYAN + currentSquare + " " + Color.ANSI_RESET);
+                    else if (currentSquare == 'X')
+                        System.out.print(Color.ANSI_MAGENTA + currentSquare + " " + Color.ANSI_RESET);
+                    else
+                        System.out.print(currentSquare + " ");
+                }
             }
             System.out.println();
         }
