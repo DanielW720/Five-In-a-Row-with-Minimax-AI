@@ -1,4 +1,4 @@
-# Five In a Row with Minimax AI
+# Five In a Row with Minimax AI (Uppsala University project)
 
 In this project I have written a program for playing Gomoku, aka. Five in a row, with the computer as your opponent. 
 The AI opponent uses the popular Minimax algorithm in order to find the best possible move.
